@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { useState } from "react";
 // import hamburger from "../../public/hamburger.svg";
-// import Image from "next/image";
+// import { useCopyToClipboard } from "usehooks-ts";
+// import toast from "react-hot-toast";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  // const [, copy] = useCopyToClipboard();
 
   return (
     <div className="text-white bg-red-500">
@@ -17,6 +19,11 @@ export default function Header() {
       >
         <Image src={hamburger} height={25} width={25} alt="Hamburger Menu" />
       </div> */}
+      {/* onClick=
+      {() => {
+        copy("0x2858E541f108161aC2A9ba301f52F515BeEBa3C3");
+        toast.success("Copied!");
+      }} */}
       {open && (
         <div className="fixed top-0 left-0 bottom-0 right-0 h-full w-full bg-white shadow-md z-20">
           <div
