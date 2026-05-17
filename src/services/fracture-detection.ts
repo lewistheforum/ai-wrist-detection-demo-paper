@@ -35,6 +35,7 @@ const detect = async (
 
   const body = { imageBase64, notes };
 
+
   const response = await fetch(API.FRACTURE_DETECTION, {
     method: "POST",
     headers: myHeaders,

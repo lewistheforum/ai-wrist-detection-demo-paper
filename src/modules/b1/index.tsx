@@ -24,40 +24,26 @@ const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/jpg"];
 export default function B1() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isFetchingSample, setIsFetchingSample] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<FractureDetectionResult | null>(null);
 
   const sampleImages = [
-    "test-1.png",
-    "test-2.png",
-    "test-3.png",
-    "test-4.png",
-    "test-5.png",
+    "https://res.cloudinary.com/dfdzphroa/image/upload/v1779010398/portfolio/zbd8cfuenif8pj47bujy.png",
+    "https://res.cloudinary.com/dfdzphroa/image/upload/v1779010420/portfolio/uwcghabzmslmpbkwvs6s.png",
+    "https://res.cloudinary.com/dfdzphroa/image/upload/v1779010459/portfolio/ypslxoxavvxzsxh7pzwj.png",
+    "https://res.cloudinary.com/dfdzphroa/image/upload/v1779010481/portfolio/okvtteslapickwwrlffj.png",
+    "https://res.cloudinary.com/dfdzphroa/image/upload/v1779010497/portfolio/yb5auaoc2ez1wwnbxwu7.png",
   ];
 
-  const handleSampleSelect = async (imageName: string) => {
+  const handleSampleSelect = (imageUrl: string) => {
     setError(null);
     setResult(null);
-    setIsFetchingSample(true);
-
-    try {
-      const response = await fetch(`/head/${imageName}`);
-      const blob = await response.blob();
-      const file = new File([blob], imageName, { type: blob.type });
-
-      setSelectedFile(file);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-    } catch (err) {
-      setError(err + "Failed to load sample image.");
-    } finally {
-      setIsFetchingSample(false);
-    }
+    setSelectedFile(imageUrl);
+    setPreviewUrl(imageUrl);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -98,7 +84,24 @@ export default function B1() {
     }
   };
 
-  const fileToBase64 = (file: File): Promise<string> => {
+  const fileToBase64 = async (file: File | string): Promise<string> => {
+    if (typeof file === "string") {
+      try {
+        const response = await fetch(file);
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(blob);
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = (error) => reject(error);
+        });
+      } catch (err) {
+        throw new Error(err+ 
+          `Failed to fetch sample image. Please check your internet connection.`
+        );
+      }
+    }
+
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
@@ -242,10 +245,16 @@ export default function B1() {
                         </div>
                         <div className="text-left overflow-hidden">
                           <p className="text-xs font-bold text-clinic-heading truncate">
-                            {selectedFile?.name}
+                            {selectedFile instanceof File
+                              ? selectedFile.name
+                              : typeof selectedFile === "string"
+                                ? selectedFile.split("/").pop()
+                                : ""}
                           </p>
                           <p className="text-[10px] text-clinic-text-muted">
-                            {((selectedFile?.size || 0) / 1024).toFixed(1)} KB
+                            {selectedFile instanceof File
+                              ? `${((selectedFile.size || 0) / 1024).toFixed(1)} KB`
+                              : "Sample Image"}
                           </p>
                         </div>
                       </div>
@@ -283,7 +292,7 @@ export default function B1() {
                   <button
                     key={idx}
                     onClick={() => handleSampleSelect(img)}
-                    disabled={isFetchingSample || isLoading}
+                    disabled={isLoading}
                     className={`
                       relative aspect-square rounded-lg overflow-hidden border-2 transition-all
                       ${
@@ -295,20 +304,12 @@ export default function B1() {
                     `}
                   >
                     <Image
-                      src={`/head/${img}`}
+                      src={img}
                       alt={`Sample ${idx + 1}`}
                       fill
                       className="object-cover"
                     />
                     <div className="absolute inset-0 bg-black/5 hover:bg-transparent transition-colors" />
-                    {isFetchingSample && previewUrl?.includes(img) && (
-                      <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
-                        <Loader
-                          size={12}
-                          className="animate-spin text-primary"
-                        />
-                      </div>
-                    )}
                   </button>
                 ))}
               </div>
@@ -508,7 +509,7 @@ export default function B1() {
                           <span className="text-[10px] font-bold text-clinic-text-muted flex items-center gap-1 bg-clinic-surface-soft px-2 py-0.5 rounded uppercase">
                             CONFIDENCE:{" "}
                             {(
-                              data.detections[0]?.confidence * 100 || 0
+                              (data.detections?.[0]?.confidence || 0) * 100
                             ).toFixed(0)}
                             %
                           </span>
@@ -540,7 +541,7 @@ export default function B1() {
                         height={800}
                       />
                       <div className="absolute top-4 right-4 flex gap-2">
-                        {data.detections.length > 0 && (
+                        {data.detections && data.detections.length > 0 && (
                           <div className="bg-red-600/80 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg border border-white/20">
                             {data.detections.length} ANOMALIES IDENTIFIED
                           </div>
@@ -584,7 +585,7 @@ export default function B1() {
                       </div>
                       <div className="p-6">
                         <div className="space-y-4">
-                          {aiResult.treatment_plan.map((step, idx) => (
+                          {aiResult.treatment_plan?.map((step, idx) => (
                             <div key={idx} className="flex gap-3">
                               <div className="shrink-0 w-5 h-5 rounded-md bg-clinic-surface-soft flex items-center justify-center text-[10px] font-bold text-clinic-heading border border-clinic-border">
                                 {idx + 1}
@@ -607,7 +608,7 @@ export default function B1() {
                       </div>
                       <div className="p-6">
                         <div className="space-y-3">
-                          {aiResult.medicines.map((med, idx) => (
+                          {aiResult.medicines?.map((med, idx) => (
                             <div
                               key={idx}
                               className="flex items-center gap-3 p-2 bg-clinic-surface-soft/30 rounded-lg border border-clinic-border/50"
@@ -618,7 +619,7 @@ export default function B1() {
                               </span>
                             </div>
                           ))}
-                          {aiResult.medicines.length === 0 && (
+                          {(!aiResult.medicines || aiResult.medicines.length === 0) && (
                             <p className="text-xs text-clinic-text-muted italic">
                               No specific medications recommended.
                             </p>
