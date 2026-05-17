@@ -54,7 +54,7 @@ export default function B1() {
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
     } catch (err) {
-      setError("Failed to load sample image.");
+      setError(err + "Failed to load sample image.");
     } finally {
       setIsFetchingSample(false);
     }
@@ -455,8 +455,8 @@ export default function B1() {
                 Awaiting Scan
               </h3>
               <p className="text-sm text-clinic-text-muted mt-2 max-w-xs">
-                Upload an X-ray and click 'Start Detection' to generate an AI
-                diagnostic report.
+                Upload an X-ray and click &apos;Start Detection&apos; to
+                generate an AI diagnostic report.
               </p>
             </div>
           )}
